@@ -8,17 +8,20 @@ There are two firmwares that you need to flash into your devices to make the gat
 ## Getting Started
 
 ### Setup
-    - Clone the project
-    - Open the project in VS Code (with Platform IO extension installed)
-    - To run the projcet select `esp01_1m` environment
-    - Some other steps go here
-    - Build and upload the code to ESP01s device
+  - Clone the project
+  - Open the project in VS Code (with Platform IO extension installed)
+  - To run the projcet select `esp01_1m` environment
+  - Some other steps go here
+  - Build and upload the code to ESP01s device
 
 ### Hardware Connection
-    1. Connect ESP32's `TX2` to `RX` pin of ESP01.
-    2. Connect ESP32's `RX2` to `TX` pin of ESP01.
-    3. Connect ESP32's `3v3` pin to `3v3` pin of ESP01.
-    4. Connect ESP32's `GND` pin to `GND` pin of ESP01.
+
+  1. Connect ESP32's `TX2` to `RX` pin of ESP01.
+  2. Connect ESP32's `RX2` to `TX` pin of ESP01.
+  3. Connect ESP32's `3v3` pin to `3v3` pin of ESP01.
+  4. Connect ESP32's `GND` pin to `GND` pin of ESP01.
+
+![Programming ESP01](media/esp01s-pinout.jpg)
 
 ## Working
 Hardware serial interface is used to communicate with ESP32.
