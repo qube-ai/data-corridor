@@ -21,6 +21,7 @@ There are two firmwares that you need to flash into your devices to make the gat
     4. Connect ESP32's `GND` pin to `GND` pin of ESP01.
 
 ## Working
-This ESP01s is connected
+Hardware serial interface is used to communicate with ESP32.
+Another software serial interface is created on pins 0 and 2 for putting out debug information.
 Gateway forwards every command to ESP01 through UART and then ESP01 is responsible for sending that command to its respective nodes.
 ![Design of Gateway](media/gateway-design.png)

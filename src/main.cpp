@@ -13,20 +13,19 @@ String this_node_name = "master";
 Scheduler userScheduler;  // To control application level tasks
 namedMesh mesh;
 
-SoftwareSerial debugSerial(0,2);
+SoftwareSerial debugSerial(0, 2);
 
-bool led_state = false;
-String final_str;
-
-void set_relay_state(String to_node, bool relay_state) {}
-
+/*
+See if the serial interface has any messages.
+If yes, extract them and send it to the respective node.
+*/
 void sendMessage() {
-    
-    if(Serial.available() > 0) {
-        Serial.println("Gateway sends a message.");
+    if (Serial.available() > 0) {
+        debugSerial.println("Gateway sends a message.");
         String data = Serial.readStringUntil('\r');
         StaticJsonDocument<300> doc;
 
+        // Check for errors in JSON
         DeserializationError error = deserializeJson(doc, data);
         if (error) {
             debugSerial.print(F("deserializeJson() failed: "));
@@ -34,39 +33,41 @@ void sendMessage() {
             return;
         }
 
+        // Who do we have to send it to?
         String send_to = doc["send_to"];
         doc.remove("send_to");
 
+        // Package up the new data and send it to the node
         String msg_data;
         serializeJson(doc, msg_data);
         Serial.println(msg_data);
         mesh.sendSingle(send_to, msg_data);
-    }
-    else {
-        debugSerial.println("No data to send to baby qubes");
-    }
-}
 
-void taskReadIncomingMessage(){
-    String data = Serial.readStringUntil('\r');
-    Serial.println("Got something in buffer.");
-    Serial.print(data);
+    } else {
+        debugSerial.println("No data to send to nodes.");
+    }
 }
 
 Task taskSendMessage(500ul, TASK_FOREVER, &sendMessage);
 
-
+/*
+This function is called whenever it receives a message from a node.
+It gets the message, and sends it to ESP32 via serial interface.
+*/
 void receivedCallback(uint32_t from, String &msg) {
-    Serial.println("Received a message.");
-    
-    StaticJsonDocument<300> doc;
+    debugSerial.println("Received a message.");
 
+    StaticJsonDocument<300> doc;
+    
+    // Check for errors in JSON
     DeserializationError error = deserializeJson(doc, msg);
     if (error) {
         debugSerial.print(F("deserializeJson() failed: "));
         debugSerial.println(error.f_str());
         return;
     }
+
+    // Find the device id of the sender node.
     doc["from"] = mesh.getNameFromId(from);
     String final_data;
     serializeJson(doc, final_data);
@@ -75,42 +76,28 @@ void receivedCallback(uint32_t from, String &msg) {
     final_data = final_data + "\r";
     Serial.print(final_data);
 
-    debugSerial.printf("startHere: Received from %u msg=%s\n", from, msg.c_str());
-}
-
-void newConnectionCallback(uint32_t nodeId) {
-    // Serial.printf("--> startHere: New Connection, nodeId = %u\n", nodeId);
-}
-
-void changedConnectionCallback() {
-    //  Serial.printf("Changed connections\n");
-}
-
-void nodeTimeAdjustedCallback(int32_t offset) {
-    // Serial.printf("Adjusted time %u. Offset = %d\n", mesh.getNodeTime(),
-    //               offset);
+    debugSerial.printf("startHere: Received from %u msg=%s\n", from,
+                       msg.c_str());
 }
 
 
 void setup() {
+
+    // Setup serial interfaces
     Serial.begin(9600);
     debugSerial.begin(9600);
     delay(100);
 
-    /* Setting up the Mesh */
-    // mesh.setDebugMsgTypes( ERROR | MESH_STATUS | CONNECTION | SYNC |
-    // COMMUNICATION | GENERAL | MSG_TYPES | REMOTE ); // all types on
-    mesh.setDebugMsgTypes(ERROR | STARTUP);
 
-    debugSerial.println("Mesh debug type set");
+    // Setting up mesh
+    debugSerial.print("Setting up mesh...");
+    mesh.setDebugMsgTypes(ERROR | STARTUP);
     mesh.init(MESH_PREFIX, MESH_PASSWORD, &userScheduler, MESH_PORT);
     mesh.setName(this_node_name);
     mesh.onReceive(&receivedCallback);
-    mesh.onNewConnection(&newConnectionCallback);
-    mesh.onChangedConnections(&changedConnectionCallback);
-    mesh.onNodeTimeAdjusted(&nodeTimeAdjustedCallback);
-    debugSerial.println("Mesh properties set");
+    debugSerial.println("COMPLETE");
 
+    // Adding tasks to scheduler
     userScheduler.addTask(taskSendMessage);
     taskSendMessage.enable();
 
