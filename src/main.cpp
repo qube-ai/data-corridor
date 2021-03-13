@@ -21,7 +21,8 @@ If yes, extract them and send it to the respective node.
 */
 void sendMessage() {
     if (Serial.available() > 0) {
-        debugSerial.println("Gateway sends a message.");
+        debugSerial.println("Received a message from Gateway.");
+
         String data = Serial.readStringUntil('\r');
         StaticJsonDocument<300> doc;
 
@@ -40,7 +41,14 @@ void sendMessage() {
         // Package up the new data and send it to the node
         String msg_data;
         serializeJson(doc, msg_data);
-        Serial.println(msg_data);
+        
+        // Print information on debug serial interface
+        debugSerial.print("Sending msg: ");
+        debugSerial.print(msg_data);
+        debugSerial.print(" to ");
+        debugSerial.println(send_to);
+        
+        // Sending message to nodes
         mesh.sendSingle(send_to, msg_data);
 
     } else {
@@ -73,11 +81,19 @@ void receivedCallback(uint32_t from, String &msg) {
     serializeJson(doc, final_data);
 
     // Send the data via serial interface
-    final_data = final_data + "\r";
+    final_data = final_data + '\r';
     Serial.print(final_data);
 
     debugSerial.printf("startHere: Received from %u msg=%s\n", from,
                        msg.c_str());
+}
+
+void newConnectionCallback(uint32_t nodeId) {
+    debugSerial.printf("--> startHere: New Connection, nodeId = %u\n", nodeId);
+}
+
+void changedConnectionCallback() {
+     debugSerial.printf("Changed connections\n");
 }
 
 
@@ -94,6 +110,8 @@ void setup() {
     mesh.setDebugMsgTypes(ERROR | STARTUP);
     mesh.init(MESH_PREFIX, MESH_PASSWORD, &userScheduler, MESH_PORT);
     mesh.setName(this_node_name);
+    mesh.onNewConnection(&newConnectionCallback);
+    mesh.onChangedConnections(&changedConnectionCallback);
     mesh.onReceive(&receivedCallback);
     debugSerial.println("COMPLETE");
 
