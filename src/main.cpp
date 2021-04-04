@@ -52,9 +52,9 @@ void sendMessage() {
             String pass = doc["pass"];
             if (!version.equals(FIRMWARE_VERSION)) {
                 // Disable tasks
-                taskSendMessage.disable();
+                // taskSendMessage.disable();
                 // Stop mesh to connect to WiFi in station mode
-                mesh.stop();
+                // mesh.stop();
 
                 // Now it's safe to perform OTA update
                 fota::performOTAUpdate(doc["version"], doc["ssid"],
