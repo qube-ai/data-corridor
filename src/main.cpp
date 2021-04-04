@@ -1,12 +1,14 @@
 // Data Corridor for Main Qube
 #include <Arduino.h>
+//
 #include "namedMesh.h"
+//
 #include "ArduinoJson.h"
+//
 #include <SoftwareSerial.h>
 
-
-#define MESH_PREFIX "whateverYouLike"
-#define MESH_PASSWORD "somethingSneaky"
+#define MESH_PREFIX "qubeMeshNet"
+#define MESH_PASSWORD "iridiiumcoresat12"
 #define MESH_PORT 5555
 String this_node_name = "master";
 
@@ -41,13 +43,13 @@ void sendMessage() {
         // Package up the new data and send it to the node
         String msg_data;
         serializeJson(doc, msg_data);
-        
+
         // Print information on debug serial interface
         debugSerial.print("Sending msg: ");
         debugSerial.print(msg_data);
         debugSerial.print(" to ");
         debugSerial.println(send_to);
-        
+
         // Sending message to nodes
         mesh.sendSingle(send_to, msg_data);
 
@@ -66,7 +68,7 @@ void receivedCallback(uint32_t from, String &msg) {
     debugSerial.println("Received a message.");
 
     StaticJsonDocument<300> doc;
-    
+
     // Check for errors in JSON
     DeserializationError error = deserializeJson(doc, msg);
     if (error) {
@@ -93,17 +95,14 @@ void newConnectionCallback(uint32_t nodeId) {
 }
 
 void changedConnectionCallback() {
-     debugSerial.printf("Changed connections\n");
+    debugSerial.printf("Changed connections\n");
 }
 
-
 void setup() {
-
     // Setup serial interfaces
     Serial.begin(9600);
     debugSerial.begin(9600);
     delay(100);
-
 
     // Setting up mesh
     debugSerial.print("Setting up mesh...");
