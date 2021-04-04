@@ -6,6 +6,8 @@
 #include "ArduinoJson.h"
 //
 #include <SoftwareSerial.h>
+//
+#include "fota.h"
 
 #define MESH_PREFIX "qubeMeshNet"
 #define MESH_PASSWORD "iridiumcoresat12"
@@ -16,6 +18,8 @@ Scheduler userScheduler;  // To control application level tasks
 namedMesh mesh;
 
 SoftwareSerial debugSerial(0, 2);
+void sendMessage();
+Task taskSendMessage(500ul, TASK_FOREVER, &sendMessage);
 
 /*
 See if the serial interface has any messages.
@@ -36,29 +40,46 @@ void sendMessage() {
             return;
         }
 
-        // Who do we have to send it to?
-        String send_to = doc["send_to"];
-        doc.remove("send_to");
+        int msg_type = doc["t"];
 
-        // Package up the new data and send it to the node
-        String msg_data;
-        serializeJson(doc, msg_data);
+        // Do I need to update myself?
+        if (msg_type == -4) {
+            debugSerial.println("Starting OTA update for data corridor");
 
-        // Print information on debug serial interface
-        debugSerial.print("Sending msg: ");
-        debugSerial.print(msg_data);
-        debugSerial.print(" to ");
-        debugSerial.println(send_to);
+            // Disable tasks
+            taskSendMessage.disable();
+            // Stop mesh to connect to WiFi in station mode
+            mesh.stop();
 
-        // Sending message to nodes
-        mesh.sendSingle(send_to, msg_data);
+            String version = doc["version"];
+            String ssid = doc["ssid"];
+            String pass = doc["pass"];
+            fota::performOTAUpdate(doc["version"], doc["ssid"], doc["pass"]);
+        }
+
+        else {
+            // Who do we have to send it to?
+            String send_to = doc["send_to"];
+            doc.remove("send_to");
+
+            // Package up the new data and send it to the node
+            String msg_data;
+            serializeJson(doc, msg_data);
+
+            // Print information on debug serial interface
+            debugSerial.print("Sending msg: ");
+            debugSerial.print(msg_data);
+            debugSerial.print(" to ");
+            debugSerial.println(send_to);
+
+            // Sending message to nodes
+            mesh.sendSingle(send_to, msg_data);
+        }
 
     } else {
         debugSerial.println("No data to send to nodes.");
     }
 }
-
-Task taskSendMessage(500ul, TASK_FOREVER, &sendMessage);
 
 /*
 This function is called whenever it receives a message from a node.
