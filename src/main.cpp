@@ -8,7 +8,7 @@
 #include <SoftwareSerial.h>
 
 #define MESH_PREFIX "qubeMeshNet"
-#define MESH_PASSWORD "iridiiumcoresat12"
+#define MESH_PASSWORD "iridiumcoresat12"
 #define MESH_PORT 5555
 String this_node_name = "master";
 
@@ -112,6 +112,7 @@ void setup() {
     mesh.onNewConnection(&newConnectionCallback);
     mesh.onChangedConnections(&changedConnectionCallback);
     mesh.onReceive(&receivedCallback);
+
     debugSerial.println("COMPLETE");
 
     // Adding tasks to scheduler
