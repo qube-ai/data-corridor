@@ -13,6 +13,7 @@
 #define MESH_PASSWORD "iridiumcoresat12"
 #define MESH_PORT 5555
 String this_node_name = "master";
+String FIRMWARE_VERSION = "data-corridor_1.0.0";
 
 Scheduler userScheduler;  // To control application level tasks
 namedMesh mesh;
@@ -46,18 +47,25 @@ void sendMessage() {
         if (msg_type == -4) {
             debugSerial.println("Starting OTA update for data corridor");
 
-            // Disable tasks
-            taskSendMessage.disable();
-            // Stop mesh to connect to WiFi in station mode
-            mesh.stop();
-
             String version = doc["version"];
             String ssid = doc["ssid"];
             String pass = doc["pass"];
-            fota::performOTAUpdate(doc["version"], doc["ssid"], doc["pass"]);
-        }
+            if (!version.equals(FIRMWARE_VERSION)) {
+                // Disable tasks
+                taskSendMessage.disable();
+                // Stop mesh to connect to WiFi in station mode
+                mesh.stop();
 
-        else {
+                // Now it's safe to perform OTA update
+                fota::performOTAUpdate(doc["version"], doc["ssid"],
+                                       doc["pass"]);
+            } else {
+                debugSerial.println(
+                    "Skipping OTA update. Device has the same firmware version "
+                    "installed.");
+                return;
+            }
+        } else {
             // Who do we have to send it to?
             String send_to = doc["send_to"];
             doc.remove("send_to");
@@ -100,6 +108,7 @@ void receivedCallback(uint32_t from, String &msg) {
 
     // Find the device id of the sender node.
     doc["from"] = mesh.getNameFromId(from);
+    doc["dc_fw"] = FIRMWARE_VERSION;
     String final_data;
     serializeJson(doc, final_data);
 
